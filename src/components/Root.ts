@@ -1,30 +1,13 @@
-import { StorageActions } from "../flux/Actions";
+import './CharacterCard';
+import './VotingStatistics';
+import './AppContainer';
 
-class Root extends  HTMLElement {
-    constructor() {
-        super();
-        this.attachShadow({mode: 'open'})
 
-        if (!this.shadowRoot) return;
-
-        this.shadowRoot.innerHTML = `
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
-            <custom-element-a></custom-element-a>
-            <custom-element-b></custom-element-b>
-            <custom-element-c></custom-element-c>
-            </div>
-        `
-        
-    }
-
-    connectedCallback() {
-        const Storage = localStorage.getItem('flux:persist')
-
-        if (Storage) {
-            const storageJson = JSON.parse(Storage)
-            StorageActions.load(storageJson)
-        }
-    }
+class RootComponent extends HTMLElement {
+  connectedCallback() {
+    this.innerHTML = `<app-container></app-container>`;
+  }
 }
 
-export default Root
+customElements.define('root-component', RootComponent);
+export default RootComponent;

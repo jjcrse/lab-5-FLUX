@@ -1,103 +1,73 @@
-import { AppDispatcher, Action } from './Dispatcher';
-import { CounterActionTypes, loadStorageActionTypes, UserActionTypes } from './Actions';
+// src/flux/store.ts
 
-export type User = {
-    name: string;
-    age: number;
-}
-
-export type State = {
-    count: number;
-    user: User | null;
-};
-
-type Listener = (state: State) => void;
-
-class Store {
-    private _myState: State = {
-        count: 0,
-        user: null,
-    }
-    // Los componentes
-    private _listeners: Listener[] = [];
-
-    constructor() {
-        AppDispatcher.register(this._handleActions.bind(this)); // Bind the context of this method to the Store instance
-    }
-
+type Agent = {
+    uuid: string;
+    displayName: string;
+    displayIcon: string;
+  };
+  
+  type Matchup = {
+    id: string;
+    agent1: Agent;
+    agent2: Agent;
+    votes1: number;
+    votes2: number;
+  };
+  
+  type AppState = {
+    matchups: Matchup[];
+  };
+  
+  type Action =
+    | { type: 'SET_MATCHUPS'; payload: Matchup[] }
+    | { type: 'VOTE'; payload: { matchupId: string; votedAgentUuid: string } };
+  
+  type Listener = () => void;
+  
+  class Store {
+    private state: AppState = { matchups: [] };
+    private listeners: Listener[] = [];
+  
     getState() {
-        return this._myState;
+      return this.state;
     }
-
-    _handleActions(action: Action): void {
-        switch (action.type) {
-            case CounterActionTypes.INCREMENT_COUNT:
-                if (typeof action.payload === 'number') {
-                    this._myState = {
-                        ...this._myState,
-                        count: this._myState.count + action.payload,
-                    }
-                }
-                this._emitChange();
-                break;
-
-            case CounterActionTypes.DECREMENT_COUNT:
-                if (typeof action.payload === 'number') {
-                    this._myState = {
-                        ...this._myState,
-                        count: this._myState.count - action.payload,
-                    }
-                }
-                this._emitChange();
-                break;
-
-            case UserActionTypes.SAVE_USER:
-                if (typeof action.payload === 'object') {
-                    this._myState = {
-                        ...this._myState,
-                        user: action.payload as User,
-                    }
-                }
-                this._emitChange();
-                break;
-
-                case loadStorageActionTypes.LOAD_STORAGE:
-                    if (typeof action.payload === 'object') {
-                        this._myState = {
-                            ...this._myState, //Anterior
-                            ...action.payload // Local Storage
-                        };
-                    };
-
-                    this._emitChange();|
-                    
-                    break;                
-        }
-       this.persist()
+  
+    dispatch(action: Action) {
+      switch (action.type) {
+        case 'SET_MATCHUPS':
+          this.state.matchups = action.payload;
+          break;
+        case 'VOTE':
+          this.state.matchups = this.state.matchups.map((match) => {
+            if (match.id === action.payload.matchupId) {
+              return {
+                ...match,
+                votes1:
+                  match.agent1.uuid === action.payload.votedAgentUuid
+                    ? match.votes1 + 1
+                    : match.votes1,
+                votes2:
+                  match.agent2.uuid === action.payload.votedAgentUuid
+                    ? match.votes2 + 1
+                    : match.votes2,
+              };
+            }
+            return match;
+          });
+          break;
+      }
+  
+      this.listeners.forEach((l) => l());
     }
-
-    private _emitChange(): void {
-        const state = this.getState();
-        for (const listener of this._listeners) {
-            listener(state);
-        }
+  
+    subscribe(listener: Listener) {
+      this.listeners.push(listener);
+      return () => {
+        this.listeners = this.listeners.filter((l) => l !== listener);
+      };
     }
-
-    // Permite a los componentes suscribirse al store
-    subscribe(listener: Listener): void {
-        this._listeners.push(listener);
-        listener(this.getState()); // Emitir estado actual al suscribirse
-    }
-
-    // Permite quitar la suscripción
-    unsubscribe(listener: Listener): void {
-        this._listeners = this._listeners.filter(l => l !== listener);
-    }
-
-    persist() {
-        localStorage.setItem('flux:persist', JSON.stringify(this._myState));
-    }
-
-}
-
-export const store = new Store();
+  }
+  
+  const store = new Store();
+  export default store;
+  
